@@ -12,7 +12,10 @@ export class ProjectsService {
     private readonly projectModel: Model<ProjectDocument>,
   ) {}
 
-  async create(ownerId: string, dto: CreateProjectDto): Promise<Project> {
+  async create(
+    ownerId: string,
+    dto: CreateProjectDto,
+  ): Promise<ProjectDocument> {
     const project = await this.projectModel.create({
       ...dto,
       owner: ownerId,
