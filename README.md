@@ -144,11 +144,3 @@ If tests require a running database, start your MongoDB instance or use the Dock
 
 - This project does not include a license file by default. Add a `LICENSE` if you intend to make the project open source.
 - For questions, check the repository owner or open an issue.
-
----
-
-If you'd like, I can also:
-
-- add a sample `.env.example` with required variables,
-- run the test suite here and fix any small issues found,
-- or add a short API usage section showing example requests.
