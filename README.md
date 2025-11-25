@@ -1,98 +1,154 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+**Kit Test Task**
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A small NestJS-based backend application used for the kit test task. It includes authentication, projects and tasks modules, and is prepared to run locally or in Docker. This repository is intended as a demonstration of a simple REST API built with NestJS.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+**Quick Overview**
 
-## Description
+- **Purpose**: Provide a compact, well-structured backend demonstrating authentication, project and task management, and tests.
+- **Stack**: Node.js, TypeScript, NestJS, (Mongoose / MongoDB), Docker (Docker Compose).
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+**Repository Structure**
 
-## Project setup
+- **`src/`**: Application source code.
+- **`src/auth`**: Authentication module, controllers, DTOs, and JWT strategy.
+- **`src/projects`**: Projects module, controllers, DTOs and schema.
+- **`src/tasks`**: Tasks module, controllers, DTOs and schema.
+- **`src/users`**: User-related services and schema.
+- **`test/`**: End-to-end test files.
 
-```bash
-$ npm install
+**Prerequisites**
+
+- **Node.js** v16+ and **npm** installed.
+- **Docker** and **Docker Compose** (optional, for running with containers).
+
+**Environment Variables (Detailed)**
+Create a `.env` file in the project root or provide environment variables via your container/orchestration. The application reads configuration through `@nestjs/config` and expects the following variables (the repository contains a working `.env` example):
+
+- **`PORT`**: Port the NestJS app listens on. Example: `3000`. Default used in code: `3000` when not set.
+- **`JWT_SECRET`**: Secret key used to sign and verify JWT tokens. Example: `your_jwt_secret_key`. Keep this value secret in production.
+- **`JWT_EXPIRES_IN`**: Token lifetime passed to the JWT sign options. Example: `3600` (seconds) or an ISO duration like `1h`. In this project the `.env` contains a very large numeric value; you can use a sensible duration like `3600`.
+- **`MONGO_INITDB_ROOT_USERNAME`**: MongoDB initial root username used by the `mongo` service when starting a fresh DB. Example: `root`.
+- **`MONGO_INITDB_ROOT_PASSWORD`**: MongoDB initial root password used by the `mongo` service. Example: `rootpassword`.
+- **`MONGO_DB_NAME`**: Logical database name used by the application. Example: `task_manager`.
+- **`MONGO_HOST`**: Hostname of the MongoDB server. In the Docker setup this is `mongo` (the service name). Locally you may use `localhost`.
+- **`MONGO_PORT`**: MongoDB port. Default: `27017`.
+- **`MONGO_URI`**: Full connection string used by Mongoose to connect. Example (used in Docker):
+
+  `mongodb://root:rootpassword@mongo:27017/task_manager?authSource=admin`
+
+Notes:
+
+- The application uses `MONGO_URI` directly in `src/app.module.ts` to configure Mongoose.
+- `JWT_SECRET` and `JWT_EXPIRES_IN` are consumed by the `JwtModule` and the `JwtStrategy` (see `src/auth`).
+- `PORT` is read in `src/main.ts` (`process.env.PORT ?? 3000`).
+
+**Example `.env` file**
+Create a `.env` file in the project root with values similar to this (do not commit secrets to source control):
+
+```
+PORT=3000
+JWT_SECRET=your_jwt_secret_key
+JWT_EXPIRES_IN=3600
+
+MONGO_INITDB_ROOT_USERNAME=root
+MONGO_INITDB_ROOT_PASSWORD=rootpassword
+MONGO_DB_NAME=task_manager
+MONGO_HOST=mongo
+MONGO_PORT=27017
+
+MONGO_URI=mongodb://root:rootpassword@mongo:27017/task_manager?authSource=admin
 ```
 
-## Compile and run the project
+**Docker & `.env` integration**
 
-```bash
-# development
-$ npm run start
+- The project's `docker-compose.yml` includes an `env_file: .env` entry for the `app` service. That means the `app` container will receive the variables defined in the repository root `.env` file.
+- The `mongo` service uses `MONGO_INITDB_ROOT_USERNAME` and `MONGO_INITDB_ROOT_PASSWORD` (provided via Compose interpolation) to initialize the database on first run.
+- Important: when running with Docker Compose the `MONGO_URI` in `.env` should point to the `mongo` service name (for example `mongodb://root:rootpassword@mongo:27017/task_manager?authSource=admin`), because the app container communicates with the DB container by its Compose network hostname `mongo`.
 
-# watch mode
-$ npm run start:dev
+**Running with Docker Compose**
 
-# production mode
-$ npm run start:prod
-```
+- Build and start (reads `.env` automatically):
 
-## Run tests
+  `docker-compose up --build`
 
-```bash
-# unit tests
-$ npm run test
+- If you prefer to pass a different env file, use the `--env-file` flag with `docker compose` (modern Docker CLI):
 
-# e2e tests
-$ npm run test:e2e
+  `docker compose --env-file .env.dev up --build`
 
-# test coverage
-$ npm run test:cov
-```
+- To override a single variable at runtime, prefix the `docker-compose` command on Linux/macOS or set environment vars in your PowerShell session on Windows. Example for PowerShell (temporary override):
 
-## Deployment
+  `$env:JWT_SECRET = 'anotherSecret'; docker-compose up --build`
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+**Security recommendations**
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+- Never commit the real `.env` with secrets to Git. Use a `.env.example` with safe example values and keep secrets in a vault or CI/CD secret store.
+- Use strong `JWT_SECRET` values in production and consider rotating them if needed.
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+**Install & Run Locally**
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+- Install dependencies:
 
-## Resources
+  `npm install`
 
-Check out a few resources that may come in handy when working with NestJS:
+- Start in development mode (hot reload):
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+  `npm run start:dev`
 
-## Support
+- Build and run production build:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+  `npm run build`
+  `npm run start:prod`
 
-## Stay in touch
+**Run with Docker**
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- Build and start the application with Docker Compose:
 
-## License
+  `docker-compose up --build`
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- The repository also includes helper scripts (if present in `package.json`) — for example you may see `npm run docker:restart` to restart the Docker setup used during development.
+
+**Testing**
+
+- Run unit tests:
+
+  `npm run test`
+
+- Run end-to-end tests:
+
+  `npm run test:e2e`
+
+- Run lint (if available):
+
+  `npm run lint`
+
+If tests require a running database, start your MongoDB instance or use the Docker Compose stack before running e2e tests.
+
+**Development Notes**
+
+- API modules are organized under `src/` by feature (`auth`, `projects`, `tasks`, `users`).
+- DTOs and Mongoose schemas live alongside their modules under `dto/` and `schemas/` respectively.
+- Authentication uses JWT; check `src/auth/strategies/jwt.strategy.ts` and `src/common/guards/jwt-auth.guard.ts`.
+
+**Common Commands**
+
+- Install dependencies: `npm install`
+- Start dev server: `npm run start:dev`
+- Run tests: `npm run test` and `npm run test:e2e`
+- Start with Docker: `docker-compose up --build`
+
+**Contributing**
+
+- Feel free to open issues or pull requests. Keep changes small and focused. Add tests for new features and ensure existing tests pass.
+
+**License & Contact**
+
+- This project does not include a license file by default. Add a `LICENSE` if you intend to make the project open source.
+- For questions, check the repository owner or open an issue.
+
+---
+
+If you'd like, I can also:
+
+- add a sample `.env.example` with required variables,
+- run the test suite here and fix any small issues found,
+- or add a short API usage section showing example requests.

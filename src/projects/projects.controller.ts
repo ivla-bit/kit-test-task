@@ -108,4 +108,13 @@ export class ProjectsController {
   remove(@Param('id') id: string): Promise<Project | null> {
     return this.projectsService.deleteById(id);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/add-member')
+  @ApiOperation({ summary: 'Add a user to project members' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ schema: { example: { userId: '65f3c1...' } } })
+  addMember(@Param('id') id: string, @Body('userId') userId: string) {
+    return this.projectsService.addMemberToProject(id, userId);
+  }
 }

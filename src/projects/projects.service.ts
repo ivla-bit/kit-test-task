@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Project, ProjectDocument } from './schemas/project.schema';
 import { Model, Types } from 'mongoose';
@@ -61,6 +65,26 @@ export class ProjectsService {
       project.tasks.push(taskId as Types.ObjectId);
       await project.save();
     }
+    return project;
+  }
+
+  async addMemberToProject(
+    projectId: string,
+    userId: string,
+  ): Promise<Project> {
+    const project = await this.projectModel.findById(projectId);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.members.some((m) => m.toString() === userId)) {
+      throw new BadRequestException('User is already a member of this project');
+    }
+
+    project.members.push(new Types.ObjectId(userId));
+    await project.save();
+
     return project;
   }
 }
