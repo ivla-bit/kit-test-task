@@ -30,7 +30,7 @@ export class AuthService {
       username,
       password: hashedPassword,
     });
-    console.log(user);
+
     return this.generateToken(user);
   }
 

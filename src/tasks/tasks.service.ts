@@ -6,7 +6,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Task, TaskDocument, TaskStatus } from './schemas/task.schema';
 import { Model, Types } from 'mongoose';
-import { ProjectsService } from 'src/projects/projects.service';
+import { ProjectsService } from '../projects/projects.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskFilter } from './types/task-filter.type';

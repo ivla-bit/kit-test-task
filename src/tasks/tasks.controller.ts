@@ -9,11 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { Task } from './schemas/task.schema';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { User } from 'src/common/decorators/user.decorator';
+import { User } from '../common/decorators/user.decorator';
 
 @Controller('tasks')
 export class TasksController {
