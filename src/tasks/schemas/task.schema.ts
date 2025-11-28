@@ -1,13 +1,7 @@
 import { Prop, SchemaFactory, Schema } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-
+import { TaskStatus } from '../enums/task-status.enum';
 export type TaskDocument = HydratedDocument<Task>;
-
-export enum TaskStatus {
-  NEW = 'New',
-  IN_PROGRESS = 'In Progress',
-  COMPLETED = 'Completed',
-}
 
 @Schema({ timestamps: true })
 export class Task {

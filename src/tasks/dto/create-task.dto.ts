@@ -6,7 +6,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { TaskStatus } from '../schemas/task.schema';
+import { TaskStatus } from '../enums/task-status.enum';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateTaskDto {

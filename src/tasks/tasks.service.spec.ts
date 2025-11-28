@@ -1,67 +1,63 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { TasksService } from './tasks.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { ProjectsService } from '../projects/projects.service';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { TaskStatus, Task } from './schemas/task.schema';
+import { Task } from './schemas/task.schema';
+import { TaskStatus } from './enums/task-status.enum';
+import { TaskSortField, TaskSortOrder } from './enums/task-sort.enum';
 
-// === МОК МОДЕЛИ MONGOOSE ===
+// === MOCK TASK MODEL ===
 class MockTaskModel {
-  constructor(data) {
+  constructor(private data) {
     Object.assign(this, data);
   }
 
-  // new Model().save() — не используется, т.к. create() статическое
-  save = jest.fn();
+  save = jest.fn().mockResolvedValue(this);
 
-  // static методы
   static create = jest.fn();
   static find = jest.fn().mockReturnThis();
-  static findById = jest.fn();
+  static findById = jest.fn().mockReturnThis();
   static findByIdAndUpdate = jest.fn().mockReturnThis();
   static findByIdAndDelete = jest.fn().mockReturnThis();
 
-  // цепочка .populate().populate().exec()
   static populate = jest.fn().mockReturnThis();
   static sort = jest.fn().mockReturnThis();
-
-  static exec = jest.fn();
+  static exec = jest.fn().mockResolvedValue(null);
 }
 
+// === MOCK PROJECTS SERVICE ===
 const mockProjectsService = {
+  findOneById: jest.fn(),
   addTaskToProject: jest.fn(),
 };
 
 describe('TasksService', () => {
   let service: TasksService;
+  let model: typeof MockTaskModel;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TasksService,
-        {
-          provide: getModelToken(Task.name),
-          useValue: MockTaskModel,
-        },
-        {
-          provide: ProjectsService,
-          useValue: mockProjectsService,
-        },
+        { provide: getModelToken(Task.name), useValue: MockTaskModel },
+        { provide: ProjectsService, useValue: mockProjectsService },
       ],
     }).compile();
 
     service = module.get<TasksService>(TasksService);
-
+    model = module.get(getModelToken(Task.name));
     jest.clearAllMocks();
   });
 
-  // ---------------------------------------------------
-  // CREATE
-  // ---------------------------------------------------
+  // -------- CREATE --------
   it('should create task and attach it to project', async () => {
     const dto = { title: 'Test', project: 'proj1', assignedTo: 'userAssigned' };
     const createdTask = { _id: 'task1', ...dto };
 
+    mockProjectsService.findOneById.mockResolvedValueOnce({ _id: 'proj1' });
     MockTaskModel.create.mockResolvedValueOnce(createdTask);
 
     const result = await service.create('user123', dto);
@@ -69,6 +65,8 @@ describe('TasksService', () => {
     expect(MockTaskModel.create).toHaveBeenCalledWith({
       ...dto,
       owner: 'user123',
+      project: 'proj1',
+      assignedTo: 'userAssigned',
     });
     expect(mockProjectsService.addTaskToProject).toHaveBeenCalledWith(
       dto.project,
@@ -77,9 +75,15 @@ describe('TasksService', () => {
     expect(result).toEqual(createdTask);
   });
 
-  // ---------------------------------------------------
-  // FIND ALL
-  // ---------------------------------------------------
+  it('should throw NotFoundException if project not found on create', async () => {
+    mockProjectsService.findOneById.mockResolvedValueOnce(null);
+
+    await expect(
+      service.create('user1', { title: 'T', project: 'xxx' } as any),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  // -------- FIND ALL --------
   it('should return all tasks', async () => {
     const tasks = [{ title: 'Task1' }];
     MockTaskModel.exec.mockResolvedValueOnce(tasks);
@@ -87,15 +91,16 @@ describe('TasksService', () => {
     const result = await service.findAll();
 
     expect(MockTaskModel.find).toHaveBeenCalled();
+    expect(MockTaskModel.populate).toHaveBeenCalledWith('owner', '-password');
     expect(MockTaskModel.populate).toHaveBeenCalledWith(
-      'owner assignedTo project',
+      'assignedTo',
+      '-password',
     );
+    expect(MockTaskModel.populate).toHaveBeenCalledWith('project');
     expect(result).toEqual(tasks);
   });
 
-  // ---------------------------------------------------
-  // FIND ONE
-  // ---------------------------------------------------
+  // -------- FIND ONE --------
   it('should return task by id', async () => {
     const task = { _id: '1', title: 'Test' };
     MockTaskModel.exec.mockResolvedValueOnce(task);
@@ -114,12 +119,9 @@ describe('TasksService', () => {
     await expect(service.findOneById('xxx')).rejects.toThrow(NotFoundException);
   });
 
-  // ---------------------------------------------------
-  // UPDATE
-  // ---------------------------------------------------
+  // -------- UPDATE --------
   it('should update task', async () => {
     const updated = { _id: '1', title: 'Updated' };
-
     MockTaskModel.exec.mockResolvedValueOnce(updated);
     MockTaskModel.findByIdAndUpdate.mockReturnValue(MockTaskModel);
 
@@ -127,7 +129,7 @@ describe('TasksService', () => {
 
     expect(MockTaskModel.findByIdAndUpdate).toHaveBeenCalledWith(
       '1',
-      { title: 'Updated' },
+      { title: 'Updated', assignedTo: undefined, project: undefined },
       { new: true },
     );
     expect(result).toEqual(updated);
@@ -142,9 +144,7 @@ describe('TasksService', () => {
     );
   });
 
-  // ---------------------------------------------------
-  // DELETE
-  // ---------------------------------------------------
+  // -------- DELETE --------
   it('should delete task', async () => {
     const deleted = { _id: '1' };
     MockTaskModel.exec.mockResolvedValueOnce(deleted);
@@ -163,12 +163,9 @@ describe('TasksService', () => {
     await expect(service.deleteById('1')).rejects.toThrow(NotFoundException);
   });
 
-  // ---------------------------------------------------
-  // UPDATE STATUS
-  // ---------------------------------------------------
+  // -------- UPDATE STATUS --------
   it('should update status', async () => {
     const updated = { _id: '1', status: TaskStatus.COMPLETED };
-
     MockTaskModel.exec.mockResolvedValueOnce(updated);
     MockTaskModel.findByIdAndUpdate.mockReturnValue(MockTaskModel);
 
@@ -183,7 +180,6 @@ describe('TasksService', () => {
   });
 
   it('should throw BadRequestException for invalid status', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await expect(service.updateStatus('1', 'broken' as any)).rejects.toThrow(
       BadRequestException,
     );
@@ -198,9 +194,7 @@ describe('TasksService', () => {
     );
   });
 
-  // ---------------------------------------------------
-  // FIND ALL WITH FILTERS & SORT
-  // ---------------------------------------------------
+  // -------- FIND ALL WITH FILTER & SORT --------
   it('should filter and sort tasks', async () => {
     const tasks = [{ title: 'A' }, { title: 'B' }];
     MockTaskModel.exec.mockResolvedValueOnce(tasks);
@@ -209,13 +203,10 @@ describe('TasksService', () => {
 
     const result = await service.findAllAndFilter(
       { status: TaskStatus.NEW },
-      { field: 'createdAt', order: 'asc' },
+      { field: TaskSortField.CREATED_AT, order: TaskSortOrder.ASC },
     );
 
-    expect(MockTaskModel.find).toHaveBeenCalledWith({
-      status: TaskStatus.NEW,
-    });
-
+    expect(MockTaskModel.find).toHaveBeenCalledWith({ status: TaskStatus.NEW });
     expect(MockTaskModel.sort).toHaveBeenCalledWith({ createdAt: 1 });
     expect(result).toEqual(tasks);
   });

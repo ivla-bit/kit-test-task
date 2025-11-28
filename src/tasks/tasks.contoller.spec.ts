@@ -3,8 +3,8 @@ import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { Task, TaskStatus } from './schemas/task.schema';
-
+import { Task } from './schemas/task.schema';
+import { TaskStatus } from './enums/task-status.enum';
 describe('TasksController', () => {
   let controller: TasksController;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

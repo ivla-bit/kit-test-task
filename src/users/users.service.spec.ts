@@ -1,8 +1,14 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { NotFoundException } from '@nestjs/common';
 import { User } from './shemas/user.schema';
+
+// Мок toObjectId, чтобы не ругался на "Invalid ObjectId"
+jest.mock('../common/helpers/toObject', () => ({
+  toObjectId: jest.fn((id: string) => id),
+}));
 
 // === МОК МОДЕЛИ ===
 class MockUserModel {
@@ -34,7 +40,6 @@ describe('UsersService', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
-
     jest.clearAllMocks();
   });
 
@@ -52,7 +57,8 @@ describe('UsersService', () => {
   // -------- findOneById ----------
   it('should return user by ID', async () => {
     const user = { _id: '123', username: 'John' };
-    MockUserModel.findById.mockResolvedValueOnce(user);
+    MockUserModel.exec.mockResolvedValueOnce(user);
+    MockUserModel.findById.mockReturnValue(MockUserModel);
 
     const result = await service.findOneById('123');
 
@@ -61,14 +67,15 @@ describe('UsersService', () => {
   });
 
   it('should throw NotFoundException if user not found', async () => {
-    MockUserModel.findById.mockResolvedValueOnce(null);
+    MockUserModel.exec.mockResolvedValueOnce(null);
+    MockUserModel.findById.mockReturnValue(MockUserModel);
 
     await expect(service.findOneById('xxx')).rejects.toThrow(NotFoundException);
   });
 
   // -------- findByUsername ----------
   it('should find user by username', async () => {
-    const user = { username: 'testUser' };
+    const user = { _id: '123', username: 'testUser' };
     MockUserModel.exec.mockResolvedValueOnce(user);
 
     const result = await service.findByUsername('testUser');
@@ -86,19 +93,17 @@ describe('UsersService', () => {
     const result = await service.create(dto);
 
     expect(result).toMatchObject(dto);
-    // Проверяем, что save() был вызван один раз на экземпляре
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(result.save).toHaveBeenCalledTimes(1);
   });
 
   // -------- deleteById ----------
   it('should delete user by id', async () => {
-    const deleted = { _id: 'test' };
+    const deleted = { _id: '123' };
     MockUserModel.exec.mockResolvedValueOnce(deleted);
 
-    const result = await service.deleteById('test');
+    const result = await service.deleteById('123');
 
-    expect(MockUserModel.findByIdAndDelete).toHaveBeenCalledWith('test');
+    expect(MockUserModel.findByIdAndDelete).toHaveBeenCalledWith('123');
     expect(result).toEqual(deleted);
   });
 });

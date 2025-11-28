@@ -1,5 +1,4 @@
-import { TaskStatus } from '../schemas/task.schema';
-
+import { TaskStatus } from '../enums/task-status.enum';
 export interface TaskFilter {
   status?: TaskStatus;
   project?: string;

@@ -22,6 +22,7 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
+import { ParseObjectIdPipe } from '@nestjs/mongoose';
 
 @ApiTags('Projects')
 @ApiBearerAuth()
@@ -77,7 +78,7 @@ export class ProjectsController {
     status: 404,
     description: 'Project not found',
   })
-  findOne(@Param('id') id: string): Promise<Project | null> {
+  findOne(@Param('id', ParseObjectIdPipe) id: string): Promise<Project | null> {
     return this.projectsService.findOneById(id);
   }
 
@@ -91,7 +92,7 @@ export class ProjectsController {
     description: 'Project updated successfully',
   })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @Body() dto: UpdateProjectDto,
   ): Promise<Project | null> {
     return this.projectsService.update(id, dto);
@@ -105,7 +106,7 @@ export class ProjectsController {
     status: 200,
     description: 'Project deleted successfully',
   })
-  remove(@Param('id') id: string): Promise<Project | null> {
+  remove(@Param('id', ParseObjectIdPipe) id: string): Promise<Project | null> {
     return this.projectsService.deleteById(id);
   }
 
@@ -114,7 +115,10 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Add a user to project members' })
   @ApiParam({ name: 'id', type: String })
   @ApiBody({ schema: { example: { userId: '65f3c1...' } } })
-  addMember(@Param('id') id: string, @Body('userId') userId: string) {
+  addMember(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body('userId') userId: string,
+  ) {
     return this.projectsService.addMemberToProject(id, userId);
   }
 }

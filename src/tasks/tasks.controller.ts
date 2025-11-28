@@ -12,7 +12,8 @@ import {
 import { TasksService } from './tasks.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CreateTaskDto } from './dto/create-task.dto';
-import { Task, TaskStatus } from './schemas/task.schema';
+import { Task } from './schemas/task.schema';
+import { TaskStatus } from './enums/task-status.enum';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { User } from '../common/decorators/user.decorator';
 import {
@@ -24,8 +25,11 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import type { TaskFilter } from './types/task-filter.type';
-import type { TaskSort } from './types/task-sort.type';
+
+import { UpdateTaskStatusDto } from './dto/update-status.dto';
+import { ParseObjectIdPipe } from '@nestjs/mongoose';
+import { TaskSortOrder } from './enums/task-sort.enum';
+import { TaskQueryDto } from './dto/task-query.dto';
 
 @ApiTags('Tasks')
 @ApiBearerAuth()
@@ -64,12 +68,13 @@ export class TasksController {
   @ApiQuery({ name: 'project', required: false })
   @ApiQuery({ name: 'assignedTo', required: false })
   @ApiQuery({ name: 'sortField', required: false })
-  @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
-  findFiltered(
-    @Query() filter: TaskFilter,
-    @Query() sort: TaskSort,
-  ): Promise<Task[]> {
-    return this.tasksService.findAllAndFilter(filter, sort);
+  @ApiQuery({ name: 'sortOrder', required: false, enum: TaskSortOrder })
+  findFiltered(@Query() query: TaskQueryDto): Promise<Task[]> {
+    const { status, project, assignedTo, sortField, sortOrder } = query;
+    return this.tasksService.findAllAndFilter(
+      { status, project, assignedTo },
+      { field: sortField, order: sortOrder },
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -77,7 +82,7 @@ export class TasksController {
   @ApiOperation({ summary: 'Get task by ID' })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Task found', type: Task })
-  findOne(@Param('id') id: string): Promise<Task | null> {
+  findOne(@Param('id', ParseObjectIdPipe) id: string): Promise<Task | null> {
     return this.tasksService.findOneById(id);
   }
 
@@ -87,7 +92,7 @@ export class TasksController {
   @ApiParam({ name: 'id', type: String })
   @ApiBody({ type: UpdateTaskDto })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @Body() dto: UpdateTaskDto,
   ): Promise<Task | null> {
     return this.tasksService.update(id, dto);
@@ -100,17 +105,17 @@ export class TasksController {
   @ApiBody({ schema: { example: { status: 'in_progress' } } })
   @ApiResponse({ status: 200, description: 'Task status updated', type: Task })
   updateStatus(
-    @Param('id') id: string,
-    @Body('status') status: TaskStatus,
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() dto: UpdateTaskStatusDto,
   ): Promise<Task | null> {
-    return this.tasksService.updateStatus(id, status);
+    return this.tasksService.updateStatus(id, dto.status);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete task by ID' })
   @ApiParam({ name: 'id', type: String })
-  remove(@Param('id') id: string): Promise<Task | null> {
+  remove(@Param('id', ParseObjectIdPipe) id: string): Promise<Task | null> {
     return this.tasksService.deleteById(id);
   }
 }
